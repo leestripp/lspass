@@ -1,8 +1,0 @@
-/workspace/Apps-GTK4/lsPass/build-rel/CMakeFiles/lspass_core.dir
-/workspace/Apps-GTK4/lsPass/build-rel/CMakeFiles/lspass.dir
-/workspace/Apps-GTK4/lsPass/build-rel/CMakeFiles/test_crypto.dir
-/workspace/Apps-GTK4/lsPass/build-rel/CMakeFiles/test_vault.dir
-/workspace/Apps-GTK4/lsPass/build-rel/CMakeFiles/test_generator.dir
-/workspace/Apps-GTK4/lsPass/build-rel/CMakeFiles/test.dir
-/workspace/Apps-GTK4/lsPass/build-rel/CMakeFiles/edit_cache.dir
-/workspace/Apps-GTK4/lsPass/build-rel/CMakeFiles/rebuild_cache.dir

@@ -4,4 +4,4 @@ build/
 
 # daedalus
 .daedalus/
-build-san/
+build-*/

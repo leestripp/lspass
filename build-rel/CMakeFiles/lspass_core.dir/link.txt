@@ -1,2 +1,0 @@
-/usr/bin/ar qc liblspass_core.a CMakeFiles/lspass_core.dir/src/core/crypto.cpp.o CMakeFiles/lspass_core.dir/src/core/vault.cpp.o CMakeFiles/lspass_core.dir/src/core/generator.cpp.o
-/usr/bin/ranlib liblspass_core.a

@@ -1,7 +1,0 @@
-{
-	"InstallScripts" : 
-	[
-		"/workspace/Apps-GTK4/lsPass/build-rel/cmake_install.cmake"
-	],
-	"Parallel" : false
-}
