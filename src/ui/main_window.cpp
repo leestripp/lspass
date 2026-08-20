@@ -1,5 +1,6 @@
 #include "main_window.hpp"
 #include "entry_dialog.hpp"
+#include "transfer.hpp"
 
 #include <glibmm/keyfile.h>
 #include <glibmm/miscutils.h>
@@ -546,8 +547,99 @@ void MainWindow::on_settings() {
     btns->append(*save);
     grid->attach(*btns, 0, 11, 2);
 
+    // -- Import / Export (Bitwarden-compatible plaintext JSON) --
+    auto io_l = Gtk::make_managed<Gtk::Label>();
+    io_l->set_markup("<b>Import / Export</b>");
+    io_l->set_halign(Gtk::Align::START);
+    io_l->set_margin_top(8);
+    grid->attach(*io_l, 0, 12, 2);
+
+    auto io_warn = Gtk::make_managed<Gtk::Label>(
+        "JSON files are plaintext. Delete them after migrating!");
+    io_warn->add_css_class("dim-label");
+    io_warn->set_halign(Gtk::Align::START);
+    grid->attach(*io_warn, 0, 13, 2);
+
+    auto io = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::HORIZONTAL, 8);
+    io->set_halign(Gtk::Align::START);
+    auto imp = Gtk::make_managed<Gtk::Button>("Import JSON…");
+    imp->signal_clicked().connect([this, dlg] { on_import_json(*dlg); });
+    auto exp = Gtk::make_managed<Gtk::Button>("Export JSON…");
+    exp->signal_clicked().connect([this, dlg] { on_export_json(*dlg); });
+    io->append(*imp);
+    io->append(*exp);
+    grid->attach(*io, 0, 14, 2);
+
     dlg->set_child(*grid);
     dlg->present();
+}
+
+void MainWindow::on_export_json(Gtk::Window& parent) {
+    // plaintext warning first
+    auto warn = Gtk::AlertDialog::create(
+        "Export writes ALL secrets as plaintext JSON. "
+        "Store it safely and delete it after migrating. Continue?");
+    warn->set_buttons({"Cancel", "Export"});
+    warn->set_default_button(0);
+    warn->set_cancel_button(0);
+    warn->choose(parent, [this, warn, &parent](const Glib::RefPtr<Gio::AsyncResult>& res) {
+        try {
+            if (warn->choose_finish(res) != 1) return;
+        } catch (...) { return; }
+
+        auto fd = Gtk::FileDialog::create();
+        fd->set_title("Export vault as JSON");
+        fd->set_initial_name("lspass_export.json");
+        auto json_filter = Gtk::FileFilter::create();
+        json_filter->set_name("JSON files");
+        json_filter->add_pattern("*.json");
+        auto filters = Gio::ListStore<Gtk::FileFilter>::create();
+        filters->append(json_filter);
+        fd->set_filters(filters);
+        fd->set_default_filter(json_filter);
+        fd->save(parent, [this, fd](const Glib::RefPtr<Gio::AsyncResult>& r) {
+            try {
+                auto file = fd->save_finish(r);
+                if (!file) return;
+                lspass::export_json(*vault_, file->get_path());
+                show_toast("Exported — remember to delete the plaintext file!");
+            } catch (const Gtk::DialogError&) { /* cancelled */ }
+              catch (const std::exception& e) {
+                show_toast(Glib::ustring{"Export failed: "} + e.what());
+            }
+        });
+    });
+}
+
+void MainWindow::on_import_json(Gtk::Window& parent) {
+    auto fd = Gtk::FileDialog::create();
+    fd->set_title("Import Bitwarden JSON export");
+    auto json_filter = Gtk::FileFilter::create();
+    json_filter->set_name("JSON files");
+    json_filter->add_pattern("*.json");
+    auto filters = Gio::ListStore<Gtk::FileFilter>::create();
+    filters->append(json_filter);
+    fd->set_filters(filters);
+    fd->set_default_filter(json_filter);
+    fd->open(parent, [this, fd](const Glib::RefPtr<Gio::AsyncResult>& r) {
+        try {
+            auto file = fd->open_finish(r);
+            if (!file) return;
+            auto res = lspass::import_json(*vault_, file->get_path());
+            refresh_entries(search_.get_text());
+            Glib::ustring msg = Glib::ustring::compose(
+                "Imported %1 entr%2", res.imported,
+                res.imported == 1 ? "y" : "ies");
+            if (res.skipped > 0)
+                msg += Glib::ustring::compose(
+                    " (%1 card/identity item%2 skipped)", res.skipped,
+                    res.skipped == 1 ? "" : "s");
+            show_toast(msg);
+        } catch (const Gtk::DialogError&) { /* cancelled */ }
+          catch (const std::exception& e) {
+            show_toast(Glib::ustring{"Import failed: "} + e.what());
+        }
+    });
 }
 
 void MainWindow::show_toast(const Glib::ustring& msg) {

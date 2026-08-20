@@ -21,6 +21,8 @@ private:
     void on_delete(const lspass::Entry& e);
     void on_change_master();
     void on_settings();
+    void on_export_json(Gtk::Window& parent);
+    void on_import_json(Gtk::Window& parent);
     void load_settings();
     void copy_to_clipboard(const std::string& text, bool sensitive);
     void show_toast(const Glib::ustring& msg);

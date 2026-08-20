@@ -9,7 +9,7 @@ to disk in plaintext.
 ## Build & test
 
 ```sh
-sudo apt install libgtkmm-4.0-dev libsqlite3-dev libsodium-dev
+sudo apt install libgtkmm-4.0-dev libsqlite3-dev libsodium-dev nlohmann-json3-dev
 cmake -B build
 cmake --build build -j
 ctest --test-dir build --output-on-failure   # 41 unit tests

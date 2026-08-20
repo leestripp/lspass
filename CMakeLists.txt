@@ -25,11 +25,15 @@ pkg_check_modules(SODIUM REQUIRED IMPORTED_TARGET libsodium)
 pkg_check_modules(GTKMM REQUIRED IMPORTED_TARGET gtkmm-4.0)
 
 # ---- Core library (no GTK dependency, fully unit-testable) ----
+find_path(NLOHMANN_JSON_INCLUDE_DIR nlohmann/json.hpp REQUIRED)
+
 add_library(lspass_core STATIC
     src/core/crypto.cpp
     src/core/vault.cpp
     src/core/generator.cpp
+    src/core/transfer.cpp
 )
+target_include_directories(lspass_core SYSTEM PUBLIC ${NLOHMANN_JSON_INCLUDE_DIR})
 target_include_directories(lspass_core PUBLIC src/core)
 target_link_libraries(lspass_core PUBLIC PkgConfig::SQLITE3 PkgConfig::SODIUM)
 
@@ -43,7 +47,7 @@ target_link_libraries(lspass PRIVATE lspass_core PkgConfig::GTKMM)
 
 # ---- Tests ----
 enable_testing()
-foreach(t crypto vault generator)
+foreach(t crypto vault generator transfer)
     add_executable(test_${t} tests/test_${t}.cpp)
     target_link_libraries(test_${t} PRIVATE lspass_core)
     add_test(NAME ${t} COMMAND test_${t})
