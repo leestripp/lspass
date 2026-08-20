@@ -11,6 +11,14 @@ endif()
 
 add_compile_options(-Wall -Wextra -Wpedantic)
 
+# Security hardening for release builds (stack canaries, fortified libc
+# calls, PIE + full RELRO / immediate binding).
+add_compile_options($<$<CONFIG:Release>:-fstack-protector-strong>
+                    $<$<CONFIG:Release>:-D_FORTIFY_SOURCE=2>
+                    $<$<CONFIG:Release>:-fPIE>)
+add_link_options($<$<CONFIG:Release>:-pie>
+                 $<$<CONFIG:Release>:-Wl,-z,relro,-z,now>)
+
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(SQLITE3 REQUIRED IMPORTED_TARGET sqlite3)
 pkg_check_modules(SODIUM REQUIRED IMPORTED_TARGET libsodium)

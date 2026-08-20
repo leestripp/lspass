@@ -72,4 +72,26 @@ TEST(passphrase_format) {
     CHECK(!pp.empty());
 }
 
+
+TEST(length_equals_class_count) {
+    PasswordOptions o; o.length = 4; // exactly one char per class
+    auto pw = generate_password(o);
+    CHECK(pw.size() == 4);
+}
+
+TEST(single_class_minimum_length) {
+    PasswordOptions o; o.length = 1;
+    o.upper = o.digits = o.symbols = false;
+    auto pw = generate_password(o);
+    CHECK(pw.size() == 1);
+    CHECK(pw[0] >= 'a' && pw[0] <= 'z');
+}
+
+TEST(passphrase_bounds) {
+    CHECK_THROWS_AS(generate_passphrase(1), std::invalid_argument);
+    CHECK_THROWS_AS(generate_passphrase(17), std::invalid_argument);
+    auto pp = generate_passphrase(2, '_');
+    CHECK(pp.find('_') != std::string::npos);
+}
+
 TEST_MAIN

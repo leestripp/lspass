@@ -12,7 +12,7 @@ to disk in plaintext.
 sudo apt install libgtkmm-4.0-dev libsqlite3-dev libsodium-dev
 cmake -B build
 cmake --build build -j
-ctest --test-dir build --output-on-failure   # 24 unit tests
+ctest --test-dir build --output-on-failure   # 41 unit tests
 ./build/lspass
 ```
 
@@ -59,15 +59,29 @@ file (incl. WAL) for a canary secret to prove this.
 
 ## Testing
 
-`ctest` runs three suites against the GUI-independent core library:
+`ctest` runs three suites (41 cases) against the GUI-independent core
+library. The whole suite is also run under AddressSanitizer + UBSan:
 
-- **crypto** — AEAD round-trips, wrong-key/tamper/AAD-mismatch rejection,
-  nonce uniqueness, KDF determinism & salt sensitivity, key wrap/unwrap.
+```sh
+cmake -B build-san -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined" \
+      -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined"
+cmake --build build-san -j && ctest --test-dir build-san
+```
+
+Release builds add `-fstack-protector-strong`, `-D_FORTIFY_SOURCE=2`,
+PIE and full RELRO (`-Wl,-z,relro,-z,now`).
+
+- **crypto** — AEAD round-trips, empty plaintext, truncated-blob rejection,
+  wrong-key/tamper/AAD-mismatch rejection, nonce uniqueness, KDF
+  determinism, salt & unicode-password handling, key wrap/unwrap,
+  constant-time compare edge cases.
 - **vault** — create/reopen, wrong-password rejection, CRUD, persistence,
-  no-plaintext canary scan, search, master-password change, DB-tamper
-  detection.
-- **generator** — length/charset guarantees, class coverage, uniqueness,
-  entropy estimate, invalid-option handling.
+  unicode + 100 KiB secrets, invalid-ID handling, no-plaintext canary
+  scan, search, settings persistence, master-password change, tampered
+  entry/header detection, corrupted KDF-parameter rejection.
+- **generator** — length/charset guarantees incl. boundary lengths, class
+  coverage, uniqueness, entropy estimate, passphrase format/bounds,
+  invalid-option handling.
 
 ## Layout
 

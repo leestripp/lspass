@@ -87,4 +87,42 @@ TEST(secure_bytes_wipes_on_resize) {
     CHECK(b.size() == 8);
 }
 
+
+TEST(aead_empty_plaintext) {
+    auto key = random_bytes(KEY_LEN);
+    auto blob = aead_encrypt(key, {}, to_bytes("aad"));
+    auto plain = aead_decrypt(key, blob, to_bytes("aad"));
+    CHECK(plain.has_value());
+    CHECK(plain->size() == 0);
+}
+
+TEST(aead_truncated_blob_rejected) {
+    auto key = random_bytes(KEY_LEN);
+    auto blob = aead_encrypt(key, to_bytes("data"), to_bytes(""));
+    for (std::size_t n : {0ul, 5ul, 23ul, 24ul, blob.size() - 1}) {
+        std::vector<std::byte> trunc(blob.begin(), blob.begin() + n);
+        CHECK(!aead_decrypt(key, trunc, to_bytes("")).has_value());
+    }
+}
+
+TEST(constant_time_equal_length_mismatch) {
+    auto a = random_bytes(16);
+    auto b = random_bytes(32);
+    CHECK(!constant_time_equal(a, b));
+}
+
+TEST(kdf_bad_salt_length_throws) {
+    auto salt = random_bytes(8); // too short
+    CHECK_THROWS_AS(derive_key("pw", salt, KdfParams::interactive()),
+                    CryptoError);
+}
+
+TEST(kdf_unicode_password) {
+    auto salt = random_bytes(SALT_LEN);
+    auto p = KdfParams::interactive();
+    auto k1 = derive_key("pässwörd-密码-🔐", salt, p);
+    auto k2 = derive_key("pässwörd-密码-🔐", salt, p);
+    CHECK(constant_time_equal(k1, k2));
+}
+
 TEST_MAIN

@@ -187,4 +187,78 @@ TEST(settings_persist) {
     }
 }
 
+
+TEST(create_existing_path_throws) {
+    auto path = tmp_vault("exists.db");
+    { auto v = Vault::create(path, "pw", crypto::KdfParams::interactive()); }
+    CHECK_THROWS_AS(Vault::create(path, "pw", crypto::KdfParams::interactive()),
+                    VaultError);
+}
+
+TEST(empty_master_password_rejected) {
+    auto path = tmp_vault("emptypw.db");
+    CHECK_THROWS_AS(Vault::create(path, "", crypto::KdfParams::interactive()),
+                    VaultError);
+}
+
+TEST(unicode_and_large_secrets) {
+    auto path = tmp_vault("unicode.db");
+    auto v = Vault::create(path, "päss-密码-🔐", crypto::KdfParams::interactive());
+    Entry e;
+    e.type = EntryType::Note;
+    e.title = "Unicode 条目 🔐";
+    e.username = "user@例え.jp";
+    std::string big(100 * 1024, '\x41'); // 100 KiB note body
+    for (size_t i = 0; i < big.size(); i += 4096) big[i] = 'A' + (i / 4096) % 26;
+    e.secret = big + "🔐emoji-suffix-€";
+    e.notes = "ünïcödé notes 中文";
+    auto id = v.add_entry(e);
+    auto got = v.get_entry(id);
+    CHECK(got.has_value());
+    CHECK(got->title == "Unicode 条目 🔐");
+    CHECK(got->secret == big + "🔐emoji-suffix-€");
+    CHECK(got->notes == "ünïcödé notes 中文");
+}
+
+TEST(invalid_id_operations) {
+    auto path = tmp_vault("invalidid.db");
+    auto v = Vault::create(path, "pw", crypto::KdfParams::interactive());
+    CHECK(!v.get_entry(999).has_value());
+    Entry e; e.id = 999; e.title = "ghost"; e.secret = "x";
+    CHECK_THROWS_AS(v.update_entry(e), VaultError);
+    CHECK_THROWS_AS(v.delete_entry(999), VaultError);
+}
+
+TEST(tampered_header_detected) {
+    auto path = tmp_vault("headertamper.db");
+    {
+        auto v = Vault::create(path, "pw", crypto::KdfParams::interactive());
+        Entry e; e.title = "x"; e.secret = "s"; v.add_entry(e);
+    }
+    {
+        sqlite3* db = nullptr;
+        CHECK(sqlite3_open(path.c_str(), &db) == SQLITE_OK);
+        // flip a byte inside the wrapped DEK blob
+        sqlite3_exec(db, "UPDATE meta SET value = "
+                         "substr(value,1,30) || char(123) || substr(value,32)"
+                         " WHERE key='wrapped_dek'",
+                     nullptr, nullptr, nullptr);
+        sqlite3_close(db);
+    }
+    CHECK_THROWS_AS(Vault::open(path, "pw"), WrongPassword);
+}
+
+TEST(corrupted_kdf_params_rejected) {
+    auto path = tmp_vault("badkdf.db");
+    { auto v = Vault::create(path, "pw", crypto::KdfParams::interactive()); }
+    {
+        sqlite3* db = nullptr;
+        CHECK(sqlite3_open(path.c_str(), &db) == SQLITE_OK);
+        sqlite3_exec(db, "UPDATE meta SET value='not-a-number'"
+                         " WHERE key='kdf_opslimit'", nullptr, nullptr, nullptr);
+        sqlite3_close(db);
+    }
+    CHECK_THROWS_AS(Vault::open(path, "pw"), VaultError);
+}
+
 TEST_MAIN

@@ -224,10 +224,20 @@ crypto::SecureBytes Vault::load_and_unwrap_dek(const std::string& password) {
 
     auto salt    = meta_get_blob(db_, "kdf_salt");
     auto wrapped = meta_get_blob(db_, "wrapped_dek");
-    crypto::KdfParams params{
-        static_cast<std::uint64_t>(std::stoull(meta_get(db_, "kdf_opslimit"))),
-        static_cast<std::size_t>(std::stoull(meta_get(db_, "kdf_memlimit"))),
-    };
+
+    crypto::KdfParams params{};
+    try {
+        params.ops_limit = std::stoull(meta_get(db_, "kdf_opslimit"));
+        params.mem_limit = std::stoull(meta_get(db_, "kdf_memlimit"));
+    } catch (const std::exception&) {
+        throw VaultError("corrupted vault header (KDF parameters)");
+    }
+    // Sanity-check attacker-controllable header values before use:
+    // a crafted vault must not be able to force a tiny/huge KDF workload.
+    if (salt.size() != crypto::SALT_LEN ||
+        params.ops_limit < 1 || params.ops_limit > 16 ||
+        params.mem_limit < (1u << 20) || params.mem_limit > (1ull << 32))
+        throw VaultError("corrupted vault header (KDF parameters)");
 
     auto kek = crypto::derive_key(password, salt, params);
     // AEAD unwrap doubles as password verification: Poly1305
