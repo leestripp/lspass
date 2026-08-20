@@ -1,0 +1,80 @@
+# lsPass — local, encrypted password manager
+
+GTK4 / gtkmm-4 · C++23 · CMake · SQLite · libsodium
+
+lsPass stores **logins, secure notes and API keys** in a local encrypted
+vault. No network, no cloud, no telemetry. Nothing secret is ever written
+to disk in plaintext.
+
+## Build & test
+
+```sh
+sudo apt install libgtkmm-4.0-dev libsqlite3-dev libsodium-dev
+cmake -B build
+cmake --build build -j
+ctest --test-dir build --output-on-failure   # 24 unit tests
+./build/lspass
+```
+
+The vault lives at `~/.local/share/lspass/vault.db` (permissions `0600`).
+
+## Security design (researched best practices)
+
+Based on the OWASP Password Storage Cheat Sheet, the libsodium
+documentation, and the envelope-encryption pattern used by established
+password managers (Bitwarden, KeePassXC-style key wrapping):
+
+```
+master password
+      │  Argon2id  (memory-hard KDF, random 128-bit salt,
+      ▼            opslimit/memlimit = libsodium "moderate",
+    KEK (32 B)     parameters stored in vault for future upgrades)
+      │  XChaCha20-Poly1305 (key wrap)
+      ▼
+    DEK (32 B, random)  ── wraps nothing else, RAM only, never on disk
+      │  XChaCha20-Poly1305 AEAD per field
+      ▼
+SQLite: entries(title, username, url [plaintext metadata],
+                secret, notes [sealed blobs: nonce‖ct‖poly1305 tag])
+```
+
+Why these choices:
+
+| Decision | Rationale |
+|---|---|
+| **Argon2id** KDF | OWASP first choice for password-derived keys; memory-hard, resistant to GPU/ASIC cracking. Parameters exceed the OWASP minimum (m ≥ 19 MiB, t = 2). |
+| **Envelope encryption** (random DEK wrapped by KEK) | Changing the master password only re-wraps 32 bytes instead of re-encrypting the whole vault; DEK compromise is impossible without the KEK. |
+| **XChaCha20-Poly1305** AEAD | 192-bit random nonces make nonce reuse a non-issue; Poly1305 authenticates every ciphertext, so **a wrong master password is detected by authentication failure** — no password hash or verifier is stored anywhere. |
+| **AAD binding** (`lspass:v1:entry:<id>:<field>`) | Ciphertexts cannot be transplanted between entries or fields by an attacker with write access to the DB file. |
+| **Fresh nonce per write** | Every save re-seals with a new random nonce. |
+| **Memory hygiene** | Keys live in `SecureBytes`, wiped with `sodium_memzero` on destruction; UI clears password fields immediately after use; clipboard auto-clears 30 s after copy (and only if it still holds our secret). |
+| **File permissions** | Vault file is `chmod 0600`. |
+| **Password generator** | Kernel CSPRNG with rejection sampling (no modulo bias), guarantees all enabled character classes, excludes ambiguous glyphs by default; ~128-bit entropy at the default 20 chars. |
+
+**Honest trade-off:** `title`, `username` and `url` are stored as
+plaintext so the list/search works without decrypting every row. The
+secrets themselves (passwords, notes, API keys) are always sealed blobs.
+The unit test `secrets_not_stored_in_plaintext` byte-scans the vault
+file (incl. WAL) for a canary secret to prove this.
+
+## Testing
+
+`ctest` runs three suites against the GUI-independent core library:
+
+- **crypto** — AEAD round-trips, wrong-key/tamper/AAD-mismatch rejection,
+  nonce uniqueness, KDF determinism & salt sensitivity, key wrap/unwrap.
+- **vault** — create/reopen, wrong-password rejection, CRUD, persistence,
+  no-plaintext canary scan, search, master-password change, DB-tamper
+  detection.
+- **generator** — length/charset guarantees, class coverage, uniqueness,
+  entropy estimate, invalid-option handling.
+
+## Layout
+
+```
+src/core/crypto.{hpp,cpp}     SecureBytes, Argon2id KDF, XChaCha20-Poly1305, key wrap
+src/core/vault.{hpp,cpp}      SQLite vault, envelope encryption, CRUD
+src/core/generator.{hpp,cpp}  CSPRNG password/passphrase generator
+src/ui/                       gtkmm-4 UI (unlock screen, list, editor dialogs)
+tests/                        ctest suites (no external framework needed)
+```
