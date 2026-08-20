@@ -93,10 +93,6 @@ double password_entropy_bits(const PasswordOptions& opt) {
     if (opt.digits)  space += 10;
     if (opt.symbols) space += 25;
     if (space == 0) return 0.0;
-    // log2(space) * length
-    double bits = 0.0;
-    for (std::size_t s = space; s > 1; s >>= 1) bits += 1.0;
-    // precise log2 via frexp-style loop is overkill; use log from <cmath>
     return opt.length * std::log2(static_cast<double>(space));
 }
 

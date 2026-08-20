@@ -130,7 +130,8 @@ MainWindow::MainWindow() {
     set_titlebar(*header);
 
     // Header actions only make sense once unlocked.
-    stack_.property_visible_child_name().signal_changed().connect([=] {
+    stack_.property_visible_child_name().signal_changed().connect(
+        [this, lock_btn, master_btn, settings_btn] {
         const bool unlocked = stack_.get_visible_child_name() == "unlocked";
         lock_btn->set_visible(unlocked);
         master_btn->set_visible(unlocked);
