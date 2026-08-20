@@ -78,3 +78,7 @@ src/core/generator.{hpp,cpp}  CSPRNG password/passphrase generator
 src/ui/                       gtkmm-4 UI (unlock screen, list, editor dialogs)
 tests/                        ctest suites (no external framework needed)
 ```
+
+## License
+
+MIT — see [LICENSE](LICENSE).
