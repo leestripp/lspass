@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <!-- rounded app-icon background -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3d4b63"/>
+      <stop offset="1" stop-color="#232c3d"/>
+    </linearGradient>
+    <linearGradient id="lock" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f6d32d"/>
+      <stop offset="1" stop-color="#e5a50a"/>
+    </linearGradient>
+  </defs>
+  <rect x="4" y="4" width="120" height="120" rx="26" fill="url(#bg)"/>
+  <!-- padlock shackle -->
+  <path d="M44 62 V46 a20 20 0 0 1 40 0 V62"
+        fill="none" stroke="#e6ecf5" stroke-width="10" stroke-linecap="round"/>
+  <!-- padlock body -->
+  <rect x="32" y="60" width="64" height="48" rx="10" fill="url(#lock)"/>
+  <!-- keyhole -->
+  <circle cx="64" cy="80" r="7" fill="#232c3d"/>
+  <rect x="61" y="83" width="6" height="14" rx="3" fill="#232c3d"/>
+</svg>

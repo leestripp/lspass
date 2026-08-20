@@ -53,6 +53,8 @@ endforeach()
 install(TARGETS lspass RUNTIME DESTINATION bin)
 install(FILES packaging/com.lspass.App.desktop
         DESTINATION share/applications)
+install(FILES packaging/com.lspass.App.svg
+        DESTINATION share/icons/hicolor/scalable/apps)
 
 set(CPACK_GENERATOR "DEB")
 set(CPACK_PACKAGE_NAME "lspass")

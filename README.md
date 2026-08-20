@@ -27,7 +27,11 @@ cd build-rel && cpack -G DEB        # requires: dpkg-dev, file
 sudo dpkg -i ../packages/deb/lspass_1.0.0_amd64.deb
 ```
 
-The `.deb` lands in `packages/deb/`. Runtime dependencies
+The `.deb` lands in `packages/deb/` and ships the binary, a
+`com.lspass.App.desktop` launcher entry, and the app icon
+(`packaging/com.lspass.App.svg`, installed into the hicolor theme).
+
+`cmake --install` without CPack uses the default `/usr/local` prefix. Runtime dependencies
 (libgtkmm-4.0, libsodium, libsqlite3, …) are resolved automatically by
 `dpkg-shlibdeps`, so `apt --fix-broken install` or `sudo apt install
 ./lspass_1.0.0_amd64.deb` pulls in everything needed.
