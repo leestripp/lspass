@@ -1,7 +1,9 @@
 # gitignore
 
+# cmake
 build/
+build-*/
 
 # daedalus
 .daedalus/
-build-*/
+packages/

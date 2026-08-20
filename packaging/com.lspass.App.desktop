@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=lsPass
+GenericName=Password Manager
+Comment=Local encrypted password manager for logins, notes and API keys
+Exec=lspass
+Icon=dialog-password
+Terminal=false
+Categories=Utility;Security;
+Keywords=password;vault;encryption;security;

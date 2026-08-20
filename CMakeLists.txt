@@ -48,3 +48,28 @@ foreach(t crypto vault generator)
     target_link_libraries(test_${t} PRIVATE lspass_core)
     add_test(NAME ${t} COMMAND test_${t})
 endforeach()
+
+# ---- Installation & packaging (.deb via CPack) ----
+install(TARGETS lspass RUNTIME DESTINATION bin)
+install(FILES packaging/com.lspass.App.desktop
+        DESTINATION share/applications)
+
+set(CPACK_GENERATOR "DEB")
+set(CPACK_PACKAGE_NAME "lspass")
+set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})
+set(CPACK_PACKAGE_CONTACT "Lee Stripp <leestripp@gmail.com>")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY
+    "Local encrypted password manager (GTK4)")
+set(CPACK_PACKAGE_DESCRIPTION
+    "lsPass stores logins, secure notes and API keys in a local encrypted
+ SQLite vault. Argon2id key derivation, XChaCha20-Poly1305 AEAD,
+ envelope encryption. No network, no cloud, no telemetry.")
+set(CPACK_DEBIAN_PACKAGE_SECTION "utils")
+set(CPACK_DEBIAN_PACKAGE_HOMEPAGE "https://gitlab.com/leestripp/lspass")
+# dpkg-shlibdeps resolves exact library dependencies (libgtkmm-4.0-0t64,
+# libsodium23, libsqlite3-0, ...) with correct versions automatically.
+set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
+set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
+# .deb output lands in ./packages/deb/
+set(CPACK_PACKAGE_DIRECTORY "${CMAKE_SOURCE_DIR}/packages/deb")
+include(CPack)

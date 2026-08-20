@@ -18,6 +18,20 @@ ctest --test-dir build --output-on-failure   # 41 unit tests
 
 The vault lives at `~/.local/share/lspass/vault.db` (permissions `0600`).
 
+## Debian/Ubuntu package
+
+```sh
+cmake -B build-rel -DCMAKE_BUILD_TYPE=Release
+cmake --build build-rel -j
+cd build-rel && cpack -G DEB        # requires: dpkg-dev, file
+sudo dpkg -i ../packages/deb/lspass_1.0.0_amd64.deb
+```
+
+The `.deb` lands in `packages/deb/`. Runtime dependencies
+(libgtkmm-4.0, libsodium, libsqlite3, …) are resolved automatically by
+`dpkg-shlibdeps`, so `apt --fix-broken install` or `sudo apt install
+./lspass_1.0.0_amd64.deb` pulls in everything needed.
+
 ## Security design (researched best practices)
 
 Based on the OWASP Password Storage Cheat Sheet, the libsodium
